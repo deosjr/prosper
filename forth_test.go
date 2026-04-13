@@ -87,3 +87,31 @@ func TestLearnXinYmins2(t *testing.T) {
 		}
 	}
 }
+
+func TestEmitQ(t *testing.T) {
+	for i, tt := range []struct {
+		input string
+		want  string
+	}{
+		{input: ": emit-Q 81 emit ; emit-Q", want: "Q"},
+		{input: ": emit-Q [ char Q ] literal emit ; emit-Q", want: "Q"},
+		// TODO:
+		// : EMIT-Q   [CHAR] Q  EMIT ;
+		// : [CHAR]   CHAR  POSTPONE LITERAL ; IMMEDIATE
+	} {
+		r, w, _ := os.Pipe()
+		os.Stdout = w
+
+		f := NewForth()
+		f.run(parseLine(tt.input))
+
+		w.Close()
+		var buf bytes.Buffer
+		io.Copy(&buf, r)
+		got := buf.String()
+
+		if got != tt.want {
+			t.Errorf("test %d: got %q, want %q", i, got, tt.want)
+		}
+	}
+}

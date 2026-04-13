@@ -99,8 +99,17 @@ func (f *Forth) run(program []expression) {
 		case immediate:
 			f.eval(e)
 		case compile:
+			// todo: separate dict for immediate words?
 			if e.valueW == ";" {
 				f.eval(e)
+				continue
+			}
+			if e.valueW == "[" {
+				f.mode = immediate
+				continue
+			}
+			if e.valueW == "literal" {
+				f.compileBuffer = append(f.compileBuffer, f.pop())
 				continue
 			}
 			f.compileBuffer = append(f.compileBuffer, e)
@@ -117,14 +126,18 @@ func (f *Forth) eval(e expression) {
 		// this feels like a hack to support 'see w' only atm
 		fields := strings.Fields(string(e.valueW))
 		cmd, arg := fields[0], fields[1]
-		if cmd != "see" {
-			panic("see hack abused!")
+		switch cmd {
+		case "see":
+			fmt.Printf(": %s", arg)
+			for _, e := range f.env[word(arg)].body {
+				fmt.Print(" ", e)
+			}
+			fmt.Print(" ;")
+		case "char":
+			f.push(expression{valueN: number(arg[0]), kind: numberKind})
+		default:
+			panic("lookahead hack abused!")
 		}
-		fmt.Printf(": %s", arg)
-		for _, e := range f.env[word(arg)].body {
-			fmt.Print(" ", e)
-		}
-		fmt.Print(" ;")
 		return
 	}
 	fn, ok := f.env[e.valueW]

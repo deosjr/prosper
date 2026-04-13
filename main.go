@@ -80,8 +80,9 @@ var builtIns = map[word]func(*Forth){
 			fmt.Print(" ", f.stack[i])
 		}
 	},
+	"emit": func(f *Forth) { fmt.Printf("%c", f.popN()) },
 
-	// creating words
+	// compile mode
 	":": func(f *Forth) {
 		if f.mode == compile {
 			panic("already in compile mode")
@@ -102,6 +103,7 @@ var builtIns = map[word]func(*Forth){
 		f.compileBuffer = nil
 		f.mode = immediate
 	},
+	"]": func(f *Forth) { f.mode = compile },
 }
 
 func parseLine(input string) []expression {
@@ -133,7 +135,8 @@ func parseLine(input string) []expression {
 			out = append(out, expression{valueN: number(n), kind: numberKind})
 			continue
 		}
-		if s == "see" {
+		// todo: interpreting these words enables parsing mode, storing a function to execute once parsed
+		if s == "see" || s == "char" {
 			lookAhead = s
 			continue
 		}
