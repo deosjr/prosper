@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"strings"
 )
 
 type Forth struct {
@@ -10,6 +9,7 @@ type Forth struct {
 	env           env
 	mode          mode
 	compileBuffer []expression
+	parameterFn   func(expression)
 }
 
 func NewForth() *Forth {
@@ -118,26 +118,13 @@ func (f *Forth) run(program []expression) {
 }
 
 func (f *Forth) eval(e expression) {
-	if e.kind == numberKind {
-		f.push(e)
+	if f.parameterFn != nil {
+		f.parameterFn(e)
+		f.parameterFn = nil
 		return
 	}
-	if strings.Contains(string(e.valueW), " ") {
-		// this feels like a hack to support 'see w' only atm
-		fields := strings.Fields(string(e.valueW))
-		cmd, arg := fields[0], fields[1]
-		switch cmd {
-		case "see":
-			fmt.Printf(": %s", arg)
-			for _, e := range f.env[word(arg)].body {
-				fmt.Print(" ", e)
-			}
-			fmt.Print(" ;")
-		case "char":
-			f.push(expression{valueN: number(arg[0]), kind: numberKind})
-		default:
-			panic("lookahead hack abused!")
-		}
+	if e.kind == numberKind {
+		f.push(e)
 		return
 	}
 	fn, ok := f.env[e.valueW]

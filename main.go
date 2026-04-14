@@ -81,6 +81,17 @@ var builtIns = map[word]func(*Forth){
 		}
 	},
 	"emit": func(f *Forth) { fmt.Printf("%c", f.popN()) },
+	"see":  func(f *Forth) { f.parameterFn = func(arg expression) {
+		w := arg.valueW
+		fmt.Printf(": %s", w)
+		for _, e := range f.env[word(w)].body {
+			fmt.Print(" ", e)
+		}
+		fmt.Print(" ;")
+	}},
+	"char": func(f *Forth) { f.parameterFn = func(arg expression) {
+		f.push(expression{valueN: number(arg.valueW[0]), kind: numberKind})
+	}},
 
 	// compile mode
 	":": func(f *Forth) {
@@ -109,14 +120,7 @@ var builtIns = map[word]func(*Forth){
 func parseLine(input string) []expression {
 	var out []expression
 	var commentMode bool
-	var lookAhead string
 	for _, s := range strings.Fields(input) {
-		if len(lookAhead) > 0 {
-			// to support 'see word'. feels like a hack
-			out = append(out, expression{valueW: word(lookAhead + " " + s), kind: wordKind})
-			lookAhead = ""
-			continue
-		}
 		if s == "\\" {
 			break
 		}
@@ -133,11 +137,6 @@ func parseLine(input string) []expression {
 		n, err := strconv.Atoi(s)
 		if err == nil {
 			out = append(out, expression{valueN: number(n), kind: numberKind})
-			continue
-		}
-		// todo: interpreting these words enables parsing mode, storing a function to execute once parsed
-		if s == "see" || s == "char" {
-			lookAhead = s
 			continue
 		}
 		out = append(out, expression{valueW: word(s), kind: wordKind})
